@@ -24,6 +24,7 @@ type Host struct {
 	User       string
 	Pass       string
 	PrivateKey string
+	PublicIP   string
 }
 
 func NewFile(f string) (*Hosts, error) {
@@ -92,7 +93,6 @@ func (h *Hosts) Match(m string) []Host {
 
 func getHost(parts []string) Host {
 	hostname := parts[0]
-	port := 22
 	if (strings.Contains(hostname, "[") &&
 		strings.Contains(hostname, "]") &&
 		strings.Contains(hostname, ":") &&
@@ -100,32 +100,27 @@ func getHost(parts []string) Host {
 		(!strings.Contains(hostname, "]") && strings.Contains(hostname, ":")) {
 
 		splithost := strings.Split(hostname, ":")
-		// fmt.Printf("splithost %+v", splithost)
-		if i, err := strconv.Atoi(splithost[1]); err == nil {
-			port = i
-		}
 		hostname = splithost[0]
 	}
 	params := parts[1:]
-	host := Host{Name: hostname, Port: port}
+	host := Host{Name: hostname}
 	parseParameters(params, &host)
 	return host
 }
 
 func parseParameters(params []string, host *Host) {
 	for _, p := range params {
-		if strings.Contains(p, "ansible_user") {
+		switch {
+		case strings.Contains(p, "ansible_user"):
 			host.User = strings.Split(p, "=")[1]
-			continue
-		} else if strings.Contains(p, "ansible_ssh_pass") {
+		case strings.Contains(p, "ansible_ssh_port"):
+			host.Port, _ = strconv.Atoi(strings.Split(p, "=")[1])
+		case strings.Contains(p, "ansible_ssh_pass"):
 			host.Pass = strings.Split(p, "=")[1]
-			continue
-		} else if strings.Contains(p, "ansible_ssh_private_key_file") {
+		case strings.Contains(p, "ansible_ssh_private_key_file"):
 			host.PrivateKey = strings.Split(p, "=")[1]
-			continue
-		} else {
-			fmt.Printf("unsupported ssh parameter: %v\n", p)
-			continue
+		case strings.Contains(p, "public_ip"):
+			host.PublicIP = strings.Split(p, "=")[1]
 		}
 	}
 }

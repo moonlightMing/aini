@@ -14,7 +14,7 @@ dbhost2
 
 [apps]
 my-app-server1
-my-app-server2:3000
+my-app-server2 ansible_ssh_port=3000 public_ip=192.168.31.33
 
 `
 
@@ -43,10 +43,10 @@ func TestGroupExists(t *testing.T) {
 func TestHostExistsInGroups(t *testing.T) {
 	v := createHosts(input1)
 	exportedHosts := map[string][]Host{
-		"dbs": []Host{Host{Name: "dbhost1", Port: 22},
-			Host{Name: "dbhost2", Port: 22}},
-		"ungrouped": []Host{Host{Name: "myhost1", Port: 22}},
-		"apps":      []Host{Host{Name: "my-app-server2", Port: 3000}},
+		"dbs": []Host{Host{Name: "dbhost1"},
+			Host{Name: "dbhost2"}},
+		"ungrouped": []Host{Host{Name: "myhost1"}},
+		"apps":      []Host{Host{Name: "my-app-server2", Port: 3000, PublicIP: "192.168.31.33"}},
 	}
 
 	for group, ehosts := range exportedHosts {
@@ -58,6 +58,9 @@ func TestHostExistsInGroups(t *testing.T) {
 						matched = true
 						if host.Port != ehost.Port {
 							t.Errorf("Host port '%v' does not match expected port of '%v'.\n", host.Port, ehost.Port)
+						}
+						if host.PublicIP != ehost.PublicIP {
+							t.Errorf("Host public_ip '%v' does not match expected public_ip of '%v'\n", host.PublicIP, ehost.PublicIP)
 						}
 					}
 				}
