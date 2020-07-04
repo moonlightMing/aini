@@ -1,4 +1,4 @@
-module aini
+module github.com/moonlightMing/aini
 
 go 1.14
 
