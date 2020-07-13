@@ -14,11 +14,11 @@ import (
 	"github.com/flynn/go-shlex"
 )
 
-type groups struct {
+type Groups struct {
 	*orderedmap.OrderedMap
 }
 
-func (g groups) Get(key string) ([]Host,bool) {
+func (g Groups) Get(key string) ([]Host, bool) {
 	if hosts, ok := g.OrderedMap.Get(key); ok {
 		return hosts.([]Host), ok
 	} else {
@@ -26,13 +26,13 @@ func (g groups) Get(key string) ([]Host,bool) {
 	}
 }
 
-func (g groups) Set(key string, hosts []Host)  {
+func (g Groups) Set(key string, hosts []Host) {
 	g.OrderedMap.Set(key, hosts)
 }
 
 type Hosts struct {
-	input  *bufio.Reader
-	Groups *groups
+	input *bufio.Reader
+	*Groups
 }
 
 type Host struct {
@@ -68,7 +68,7 @@ func NewParser(r io.Reader) (*Hosts, error) {
 func (h *Hosts) parse() error {
 	scanner := bufio.NewScanner(h.input)
 	activeGroupName := "ungrouped"
-	h.Groups = &groups{
+	h.Groups = &Groups{
 		orderedmap.New(),
 	}
 
