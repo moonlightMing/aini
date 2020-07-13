@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/iancoleman/orderedmap"
 	"io"
 	"io/ioutil"
 	"path"
@@ -13,9 +14,25 @@ import (
 	"github.com/flynn/go-shlex"
 )
 
+type groups struct {
+	*orderedmap.OrderedMap
+}
+
+func (g groups) Get(key string) ([]Host,bool) {
+	if hosts, ok := g.OrderedMap.Get(key); ok {
+		return hosts.([]Host), ok
+	} else {
+		return nil, ok
+	}
+}
+
+func (g groups) Set(key string, hosts []Host)  {
+	g.OrderedMap.Set(key, hosts)
+}
+
 type Hosts struct {
 	input  *bufio.Reader
-	Groups map[string][]Host
+	Groups *groups
 }
 
 type Host struct {
@@ -51,8 +68,9 @@ func NewParser(r io.Reader) (*Hosts, error) {
 func (h *Hosts) parse() error {
 	scanner := bufio.NewScanner(h.input)
 	activeGroupName := "ungrouped"
-	h.Groups = make(map[string][]Host)
-	h.Groups[activeGroupName] = make([]Host, 0)
+	h.Groups = &groups{
+		orderedmap.New(),
+	}
 
 	for scanner.Scan() {
 		line := strings.Trim(scanner.Text(), " ")
@@ -62,8 +80,8 @@ func (h *Hosts) parse() error {
 			replacer := strings.NewReplacer("[", "", "]", "")
 			activeGroupName = replacer.Replace(line)
 
-			if _, ok := h.Groups[activeGroupName]; !ok {
-				h.Groups[activeGroupName] = make([]Host, 0)
+			if _, ok := h.Groups.Get(activeGroupName); !ok {
+				h.Groups.Set(activeGroupName, make([]Host, 0))
 			}
 		} else if strings.HasPrefix(line, ";") || strings.HasPrefix(line, "#") || line == "" {
 			// do nothing
@@ -73,7 +91,9 @@ func (h *Hosts) parse() error {
 				fmt.Println("couldn't tokenize: ", line)
 			}
 			host := getHost(parts)
-			h.Groups[activeGroupName] = append(h.Groups[activeGroupName], host)
+
+			group, _ := h.Groups.Get(activeGroupName)
+			h.Groups.Set(activeGroupName, append(group, host))
 		}
 	}
 	return nil
@@ -81,13 +101,16 @@ func (h *Hosts) parse() error {
 
 func (h *Hosts) Match(m string) []Host {
 	matchedHosts := make([]Host, 0, 5)
-	for _, hosts := range h.Groups {
+
+	for _, hostsKey := range h.Groups.Keys() {
+		hosts, _ := h.Groups.Get(hostsKey)
 		for _, host := range hosts {
 			if m, err := path.Match(m, host.Name); err == nil && m {
 				matchedHosts = append(matchedHosts, host)
 			}
 		}
 	}
+
 	return matchedHosts
 }
 

@@ -32,7 +32,7 @@ func createHostsFromFile(f string) Hosts {
 func TestGroupExists(t *testing.T) {
 	v := createHosts(input1)
 	matched := false
-	if _, ok := v.Groups["dbs"]; ok {
+	if _, ok := v.Groups.Get("dbs"); ok {
 		matched = true
 	}
 	if !matched {
@@ -51,7 +51,7 @@ func TestHostExistsInGroups(t *testing.T) {
 
 	for group, ehosts := range exportedHosts {
 		for _, ehost := range ehosts {
-			if hosts, ok := v.Groups[group]; ok {
+			if hosts, ok := v.Groups.Get(group); ok {
 				matched := false
 				for _, host := range hosts {
 					if host.Name == ehost.Name {
@@ -92,7 +92,7 @@ func TestHostMatching(t *testing.T) {
 func TestFromFileGroupExists(t *testing.T) {
 	v := createHostsFromFile("sample_hosts")
 	matched := false
-	if _, ok := v.Groups["dbs"]; ok {
+	if _, ok := v.Groups.Get("dbs"); ok {
 		matched = true
 	}
 	if !matched {
@@ -117,7 +117,7 @@ func TestReadSSHParameters(t *testing.T) {
 		Host{Name: "sql-host2", Port: 3306, User: "ubuntu", PrivateKey: "/tmp/some/key"},
 	}
 	i := createHostsFromFile("sample_hosts")
-	sqlGroup := i.Groups["sql"]
+	sqlGroup,_ := i.Groups.Get("sql")
 	for i, host := range sqlGroup {
 		if expectedHosts[i].User != host.User {
 			t.Errorf("mismatched users: %v / %v", expectedHosts[i], host)
